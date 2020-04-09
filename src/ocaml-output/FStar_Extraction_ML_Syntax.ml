@@ -815,56 +815,67 @@ let (avoid_keyword : Prims.string -> Prims.string) =
 let (bv_as_mlident : FStar_Syntax_Syntax.bv -> mlident) =
   fun x  ->
     let uu____3547 =
-      ((FStar_Util.starts_with
-          (x.FStar_Syntax_Syntax.ppname).FStar_Ident.idText
-          FStar_Ident.reserved_prefix)
-         || (FStar_Syntax_Syntax.is_null_bv x))
-        || (is_reserved (x.FStar_Syntax_Syntax.ppname).FStar_Ident.idText)
+      ((let uu____3551 = FStar_Ident.text_of_id x.FStar_Syntax_Syntax.ppname
+           in
+        FStar_Util.starts_with uu____3551 FStar_Ident.reserved_prefix) ||
+         (FStar_Syntax_Syntax.is_null_bv x))
+        ||
+        (let uu____3554 = FStar_Ident.text_of_id x.FStar_Syntax_Syntax.ppname
+            in
+         is_reserved uu____3554)
        in
     if uu____3547
     then
-      let uu____3551 =
-        let uu____3553 =
-          let uu____3555 =
+      let uu____3558 =
+        let uu____3560 = FStar_Ident.text_of_id x.FStar_Syntax_Syntax.ppname
+           in
+        let uu____3562 =
+          let uu____3564 =
             FStar_Util.string_of_int x.FStar_Syntax_Syntax.index  in
-          Prims.op_Hat "_" uu____3555  in
-        Prims.op_Hat (x.FStar_Syntax_Syntax.ppname).FStar_Ident.idText
-          uu____3553
-         in
-      FStar_All.pipe_left avoid_keyword uu____3551
+          Prims.op_Hat "_" uu____3564  in
+        Prims.op_Hat uu____3560 uu____3562  in
+      FStar_All.pipe_left avoid_keyword uu____3558
     else
-      FStar_All.pipe_left avoid_keyword
-        (x.FStar_Syntax_Syntax.ppname).FStar_Ident.idText
+      (let uu____3571 = FStar_Ident.text_of_id x.FStar_Syntax_Syntax.ppname
+          in
+       FStar_All.pipe_left avoid_keyword uu____3571)
   
 let (mlpath_of_lident : FStar_Ident.lident -> mlpath) =
   fun x  ->
-    let uu____3570 = FStar_Ident.lid_equals x FStar_Parser_Const.failwith_lid
+    let uu____3581 = FStar_Ident.lid_equals x FStar_Parser_Const.failwith_lid
        in
-    if uu____3570
-    then ([], ((x.FStar_Ident.ident).FStar_Ident.idText))
+    if uu____3581
+    then
+      let uu____3584 =
+        let uu____3586 = FStar_Ident.ident_of_lid x  in
+        FStar_Ident.text_of_id uu____3586  in
+      ([], uu____3584)
     else
-      (let uu____3580 =
-         FStar_List.map (fun x1  -> x1.FStar_Ident.idText) x.FStar_Ident.ns
-          in
-       let uu____3587 =
-         avoid_keyword (x.FStar_Ident.ident).FStar_Ident.idText  in
-       (uu____3580, uu____3587))
+      (let uu____3594 =
+         let uu____3598 = FStar_Ident.ns_of_lid x  in
+         FStar_List.map FStar_Ident.text_of_id uu____3598  in
+       let uu____3602 =
+         let uu____3604 =
+           let uu____3606 = FStar_Ident.ident_of_lid x  in
+           FStar_Ident.text_of_id uu____3606  in
+         avoid_keyword uu____3604  in
+       (uu____3594, uu____3602))
   
 let (push_unit : mltyscheme -> mltyscheme) =
   fun ts  ->
-    let uu____3599 = ts  in
-    match uu____3599 with
+    let uu____3617 = ts  in
+    match uu____3617 with
     | (vs,ty) -> (vs, (MLTY_Fun (ml_unit_ty, E_PURE, ty)))
   
 let (pop_unit : mltyscheme -> mltyscheme) =
   fun ts  ->
-    let uu____3608 = ts  in
-    match uu____3608 with
+    let uu____3626 = ts  in
+    match uu____3626 with
     | (vs,ty) ->
         (match ty with
          | MLTY_Fun (l,E_PURE ,t) ->
              if l = ml_unit_ty
              then (vs, t)
              else failwith "unexpected: pop_unit: domain was not unit"
-         | uu____3617 -> failwith "unexpected: pop_unit: not a function type")
+         | uu____3635 -> failwith "unexpected: pop_unit: not a function type")
   
