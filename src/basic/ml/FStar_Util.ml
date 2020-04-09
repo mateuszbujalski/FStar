@@ -1230,3 +1230,7 @@ let within_bounds repr signedness width =
   let lower, upper = bounds signedness width in
   let value = Z.of_string (ensure_decimal repr) in
   Z.leq lower value && Z.leq value upper
+
+type hash_val = int
+[@@deriving yojson,show]
+let phys_hash (x:'a) : int = Hashtbl.hash x

@@ -463,3 +463,8 @@ val write : ref<'a> -> 'a -> unit
 (* Marshaling to and from strings *)
 val marshal: 'a -> string
 val unmarshal: string -> 'a
+
+type hash_val
+val phys_hash
+    <'a when 'a : equality> // JUST FSHARP
+    : 'a -> hash_val

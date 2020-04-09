@@ -1145,3 +1145,6 @@ let write r x = r := x
 
 let marshal (x:'a) : string = failwith "Marshaling to/from strings: not yet supported in F#"
 let unmarshal (x:string) : 'a = failwith "Marshaling to/from strings: not yet supported in F#"
+
+type hash_val = | HashVal of int
+let phys_hash (x:'a) = HashVal (x.GetHashCode ())
