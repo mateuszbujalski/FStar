@@ -285,16 +285,16 @@ let avoid_keyword s =
 
 open FStar.Syntax.Syntax
 let bv_as_mlident (x:bv): mlident =
-  if Util.starts_with x.ppname.idText Ident.reserved_prefix
-  || is_null_bv x || is_reserved x.ppname.idText
-  then avoid_keyword <| x.ppname.idText ^ "_" ^ (string_of_int x.index)
-  else avoid_keyword <| x.ppname.idText
+  if Util.starts_with (text_of_id x.ppname) Ident.reserved_prefix
+  || is_null_bv x || is_reserved (text_of_id x.ppname)
+  then avoid_keyword <| (text_of_id x.ppname) ^ "_" ^ (string_of_int x.index)
+  else avoid_keyword <| (text_of_id x.ppname)
 
 (* -------------------------------------------------------------------- *)
 let mlpath_of_lident (x : lident) : mlpath =
     if Ident.lid_equals x FStar.Parser.Const.failwith_lid
-    then ([], x.ident.idText)
-    else (List.map (fun x -> x.idText) x.ns, avoid_keyword x.ident.idText)
+    then ([], (text_of_id (ident_of_lid x)))
+    else (List.map text_of_id (ns_of_lid x), avoid_keyword (text_of_id (ident_of_lid x)))
 
 let push_unit (ts : mltyscheme) : mltyscheme =
     let vs, ty = ts in

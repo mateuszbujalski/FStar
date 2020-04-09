@@ -74,7 +74,7 @@ of field names has changed, but we cannot change the definition in
 FStar.Extraction.ML.Util for now because it is used by legacy
 extraction, which is still used in the bootstrapping process *)
 
-let record_fields fs vs = List.map2 (fun (f:ident) e -> avoid_keyword f.idText, e) fs vs
+let record_fields fs vs = List.map2 (fun (f:ident) e -> avoid_keyword (text_of_id f), e) fs vs
 
 (********************************************************************************************)
 (* Some basic error reporting; all are fatal errors at this stage                           *)
@@ -118,13 +118,13 @@ let err_unexpected_eff env t ty f0 f1 =
 let effect_as_etag =
     let cache = BU.smap_create 20 in
     let rec delta_norm_eff g (l:lident) =
-        match BU.smap_try_find cache l.str with
+        match BU.smap_try_find cache (string_of_lid l) with
             | Some l -> l
             | None ->
                 let res = match TypeChecker.Env.lookup_effect_abbrev g.env_tcenv [S.U_zero] l with
                 | None -> l
                 | Some (_, c) -> delta_norm_eff g (U.comp_effect_name c) in
-                BU.smap_add cache l.str res;
+                BU.smap_add cache (string_of_lid l) res;
                 res in
     fun g l ->
         let l = delta_norm_eff g l in
@@ -814,7 +814,7 @@ let resugar_pat q p = match p with
         | _ ->
           match q with
               | Some (Record_ctor (ty, fns)) ->
-              let path = List.map text_of_id ty.ns in
+              let path = List.map text_of_id (ns_of_lid ty) in
               let fs = record_fields fns pats in
               MLP_Record(path, fs)
             | _ -> p
@@ -961,7 +961,7 @@ let maybe_eta_data_and_project_record (g:uenv) (qual : option<fv_qual>) (residua
    let as_record qual e =
         match e.expr, qual with
             | MLE_CTor(_, args), Some (Record_ctor(tyname, fields)) ->
-               let path = List.map text_of_id tyname.ns in
+               let path = List.map text_of_id (ns_of_lid tyname) in
                let fields = record_fields fields args in
                with_ty e.mlty <| MLE_Record(path, fields)
             | _ -> e in
@@ -983,7 +983,7 @@ let maybe_eta_data_and_project_record (g:uenv) (qual : option<fv_qual>) (residua
 
         | MLE_App({expr=MLE_Name mlp}, mle::args), Some (Record_projector (constrname, f))
         | MLE_App({expr=MLE_TApp({expr=MLE_Name mlp}, _)}, mle::args), Some (Record_projector (constrname, f))->
-          let f = lid_of_ids (constrname.ns @ [f]) in
+          let f = lid_of_ids (ns_of_lid constrname @ [f]) in
           let fn = Util.mlpath_of_lid f in
           let proj = MLE_Proj(mle, fn) in
           let e = match args with
@@ -1796,4 +1796,4 @@ let ind_discriminator_body env (discName:lident) (constrName:lident) : mlmodule1
                                     // Note: it is legal in OCaml to write [Foo _] for a constructor with zero arguments, so don't bother.
                                    [MLP_CTor(mlpath_of_lident constrName, [MLP_Wild]), None, with_ty ml_bool_ty <| MLE_Const(MLC_Bool true);
                                     MLP_Wild, None, with_ty ml_bool_ty <| MLE_Const(MLC_Bool false)]))) in
-    MLM_Let (NonRec,[{mllb_meta=[]; mllb_name=convIdent discName.ident; mllb_tysc=None; mllb_add_unit=false; mllb_def=discrBody; print_typ=false}] )
+    MLM_Let (NonRec,[{mllb_meta=[]; mllb_name=convIdent (ident_of_lid discName); mllb_tysc=None; mllb_add_unit=false; mllb_def=discrBody; print_typ=false}] )

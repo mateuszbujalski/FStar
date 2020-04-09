@@ -99,7 +99,7 @@ let prependTick x = if BU.starts_with x "'" then x else "'A"^x ///the addition o
 let removeTick x = if BU.starts_with x "'" then BU.substring_from x 1 else x
 
 let convRange (r:Range.range) : int = 0 (*FIX!!*)
-let convIdent (id:ident) : mlident = id.idText
+let convIdent (id:ident) : mlident = (text_of_id id)
 
 (* TODO : need to make sure that the result of this name change does not collide with a variable already in the context. That might cause a change in semantics.
    E.g. , consider the following in F*
@@ -123,9 +123,9 @@ let bv_as_ml_termvar x =  removeTick (bv_as_mlident x)
 let rec lookup_ty_local (gamma:list<binding>) (b:bv) : mlty =
     match gamma with
         | (Bv (b', Inl ty_b)) :: tl -> if (bv_eq b b') then ty_b.ty_b_ty else lookup_ty_local tl b
-        | (Bv (b', Inr _)) :: tl -> if (bv_eq b b') then failwith ("Type/Expr clash: "^(b.ppname.idText)) else lookup_ty_local tl b
+        | (Bv (b', Inr _)) :: tl -> if (bv_eq b b') then failwith ("Type/Expr clash: "^((text_of_id b.ppname))) else lookup_ty_local tl b
         | _::tl -> lookup_ty_local tl b
-        | [] -> failwith ("extraction: unbound type var "^(b.ppname.idText))
+        | [] -> failwith ("extraction: unbound type var "^((text_of_id b.ppname)))
 
 let tyscheme_of_td (_, _, _, vars, _, body_opt) : option<mltyscheme> =
     match body_opt with
@@ -140,11 +140,11 @@ let lookup_ty_const (env:uenv) ((module_name, ty_name):mlpath) : option<mltysche
         then Some tydef.tydef_def
         else None)
 
-let module_name_of_fv fv = fv.fv_name.v.ns |> List.map (fun (i:ident) -> i.idText)
+let module_name_of_fv fv = ns_of_lid fv.fv_name.v |> List.map (fun (i:ident) -> (text_of_id i))
 
 let maybe_mangle_type_projector (env:uenv) (fv:fv) : option<mlpath> =
     let mname = module_name_of_fv fv in
-    let ty_name = fv.fv_name.v.ident.idText in
+    let ty_name = (text_of_id (ident_of_lid fv.fv_name.v)) in
     BU.find_map env.tydefs  (fun tydef ->
         if tydef.tydef_name = ty_name
         && tydef.tydef_mlmodule_name = mname
@@ -160,7 +160,7 @@ let lookup_fv_by_lid (g:uenv) (lid:lident) : ty_or_exp_b =
         | Fv (fv', x) when fv_eq_lid fv' lid -> Some x
         | _ -> None) in
     match x with
-        | None -> failwith (BU.format1 "free Variable %s not found\n" (lid.nsstr))
+        | None -> failwith (BU.format1 "free Variable %s not found\n" (nsstr lid))
         | Some y -> Inr y
 
 (*keep this in sync with lookup_fv_by_lid, or call it here. lid does not have position information*)
@@ -179,7 +179,7 @@ let lookup_bv (g:uenv) (bv:bv) : ty_or_exp_b =
         | Bv (bv', r) when bv_eq bv bv' -> Some (r)
         | _ -> None) in
     match x with
-        | None -> failwith (BU.format2 "(%s) bound Variable %s not found\n" (Range.string_of_range bv.ppname.idRange) (Print.bv_to_string bv))
+        | None -> failwith (BU.format2 "(%s) bound Variable %s not found\n" (Range.string_of_range (range_of_id bv.ppname)) (Print.bv_to_string bv))
         | Some y -> y
 
 
@@ -360,7 +360,7 @@ let monad_op_name (ed:Syntax.eff_decl) nm =
     (mlpath_of_lident lid), lid
 
 let action_name (ed:Syntax.eff_decl) (a:Syntax.action) =
-    let nm = a.action_name.ident.idText in
-    let module_name = ed.mname.ns in
+    let nm = (text_of_id (ident_of_lid a.action_name)) in
+    let module_name = ns_of_lid ed.mname in
     let lid = Ident.lid_of_ids (module_name@[Ident.id_of_text nm]) in
     (mlpath_of_lident lid), lid
