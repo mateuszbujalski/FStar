@@ -933,7 +933,7 @@ let collect_one
         collect_pattern' p.pat
 
       and collect_pattern' = function
-        | PatVar (_, aqual)
+        | PatVar (_, aqual, _)
         | PatTvar (_, aqual)
         | PatWild aqual ->
             collect_aqual aqual

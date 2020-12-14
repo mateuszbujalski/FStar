@@ -105,7 +105,7 @@ and pattern' =
   | PatWild     of aqual
   | PatConst    of sconst
   | PatApp      of pattern * list<pattern>
-  | PatVar      of ident * aqual
+  | PatVar      of ident * aqual * attributes_
   | PatName     of lid
   | PatTvar     of ident * aqual
   | PatList     of list<pattern>
@@ -266,7 +266,7 @@ let un_curry_abs ps body = match body.tm with
     | _ -> Abs(ps, body)
 let mk_function branches r1 r2 =
   let x = Ident.gen r1 in
-  mk_term (Abs([mk_pattern (PatVar(x,None)) r1],
+  mk_term (Abs([mk_pattern (PatVar(x,None,[])) r1],
                mk_term (Match(mk_term (Var(lid_of_ids [x])) r1 Expr, branches)) r2 Expr))
     r2 Expr
 let un_function p tm = match p.pat, tm.tm with
@@ -392,7 +392,7 @@ let mkRefinedPattern pat t should_bind_pat phi_opt t_range range =
             if should_bind_pat
             then
                 begin match pat.pat with
-                | PatVar (x,_) ->
+                | PatVar (x,_,_) -> // TODO_MB: Attributes?
                     mk_term (Refine(mk_binder (Annotated(x, t)) t_range Type_level None, phi)) range Type_level
                 | _ ->
                     let x = gen t_range in
@@ -684,8 +684,8 @@ and pat_to_string x = match x.pat with
   | PatWild _ -> "#_"
   | PatConst c -> C.const_to_string c
   | PatApp(p, ps) -> Util.format2 "(%s %s)" (p |> pat_to_string) (to_string_l " " pat_to_string ps)
-  | PatTvar (i, aq)
-  | PatVar (i,  aq) -> Util.format2 "%s%s" (aqual_to_string aq) (string_of_id i)
+  | PatTvar (i, aq) -> Util.format2 "%s%s" (aqual_to_string aq) (string_of_id i)
+  | PatVar (i,  aq, attrs) -> Util.format3 "%s%s%s" (aqual_to_string aq) (attrs_opt_to_string (Some attrs)) (string_of_id i)
   | PatName l -> (string_of_lid l)
   | PatList l -> Util.format1 "[%s]" (to_string_l "; " pat_to_string l)
   | PatTuple (l, false) -> Util.format1 "(%s)" (to_string_l ", " pat_to_string l)
@@ -698,11 +698,11 @@ and pat_to_string x = match x.pat with
 
 and attrs_opt_to_string = function
   | None -> ""
-  | Some attrs -> Util.format1 "[@ %s]" (List.map term_to_string attrs |> String.concat "; ")
+  | Some attrs -> Util.format1 "[@@ %s]" (List.map term_to_string attrs |> String.concat "; ")
 
 let rec head_id_of_pat p = match p.pat with
   | PatName l -> [l]
-  | PatVar (i, _) -> [FStar.Ident.lid_of_ids [i]]
+  | PatVar (i, _, _) -> [FStar.Ident.lid_of_ids [i]]
   | PatApp(p, _) -> head_id_of_pat p
   | PatAscribed(p, _) -> head_id_of_pat p
   | _ -> []

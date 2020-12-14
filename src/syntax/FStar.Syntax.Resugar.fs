@@ -701,12 +701,12 @@ let rec resugar_term' (env: DsEnv.env) (t : S.term) : A.term =
         let pat, term = match bnd.lbname with
           | Inr fv -> mk_pat (A.PatName fv.fv_name.v), term
           | Inl bv ->
-            mk_pat (A.PatVar (bv_as_unique_ident bv, None)), term
+            mk_pat (A.PatVar (bv_as_unique_ident bv, None, [])), term // TODO_MB: Attributes?
         in
         attrs_opt,
         (if is_pat_app then
           let args = binders |> map_opt (fun b ->
-            BU.map_opt (resugar_arg_qual env b.binder_qual) (fun q -> mk_pat(A.PatVar (bv_as_unique_ident b.binder_bv, q)))) in
+            BU.map_opt (resugar_arg_qual env b.binder_qual) (fun q -> mk_pat(A.PatVar (bv_as_unique_ident b.binder_bv, q, List.map (resugar_term' env) b.binder_attrs)))) in
           ((mk_pat (A.PatApp (pat, args)), resugar_term' env term), (universe_to_string univs))
         else
           ((pat, resugar_term' env term), (universe_to_string univs)))
@@ -1005,7 +1005,7 @@ and resugar_bv_as_pat' env (v: S.bv) aqual (body_bv: BU.set<bv>) typ_opt =
   let used = BU.set_mem v body_bv in
   let pat =
     mk (if used
-        then A.PatVar (bv_as_unique_ident v, aqual)
+        then A.PatVar (bv_as_unique_ident v, aqual, []) // TODO_MB: Attributes?
         else A.PatWild aqual) in
   match typ_opt with
   | None | Some { n = Tm_unknown } -> pat

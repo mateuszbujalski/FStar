@@ -849,7 +849,7 @@ and p_letlhs kw (pat, _) inner_let =
     | _ -> pat, None
   in
   match pat.pat with
-  | PatApp ({pat=PatVar (lid, _)}, pats) ->
+  | PatApp ({pat=PatVar (lid, _, _)}, pats) ->
       (* has binders *)
       let ascr_doc =
         (match ascr with
@@ -1002,8 +1002,8 @@ and p_atomicPattern p = match p.pat with
   | PatAscribed (pat, (t, None)) ->
     (* This inverts the first rule of atomicPattern (LPAREN tuplePattern COLON
      * simpleArrow RPAREN). *)
-    begin match pat.pat, t.tm with
-    | PatVar (lid, aqual), Refine({b = Annotated(lid', t)}, phi)
+    begin match pat.pat, t.tm with // TODO_MB: Attributes?
+    | PatVar (lid, aqual,_), Refine({b = Annotated(lid', t)}, phi)
       when (string_of_id lid) = (string_of_id lid') ->
       (* p_refinement jumps into p_appTerm for the annotated type; this is
        * tighter than simpleArrow (which is what the parser uses), meaning that
@@ -1033,8 +1033,8 @@ and p_atomicPattern p = match p.pat with
     optional p_aqual aqual ^^ underscore
   | PatConst c ->
     p_constant c
-  | PatVar (lid, aqual) ->
-    optional p_aqual aqual ^^ p_lident lid
+  | PatVar (lid, aqual, attrs) ->
+    optional p_aqual aqual ^^ p_attributes attrs ^^ p_lident lid
   | PatName uid ->
       p_quident uid
   | PatOr _ -> failwith "Inner or pattern !"
@@ -1318,7 +1318,7 @@ and p_noSeqTerm' ps pb e = match e.tm with
     let lbs_doc = group (separate break1 lbs_docs) in
     paren_if ps (group (lbs_doc ^^ hardline ^^ p_term false pb e))
 
-  | Abs([{pat=PatVar(x, typ_opt)}], {tm=Match(maybe_x, branches)}) when matches_var maybe_x x ->
+  | Abs([{pat=PatVar(x, typ_opt,_)}], {tm=Match(maybe_x, branches)}) when matches_var maybe_x x ->
     paren_if (ps || pb) (
       group (str "function" ^/^ separate_map_last hardline p_patternBranch branches))
   | Quote (e, Dynamic) ->
@@ -1406,14 +1406,15 @@ and collapse_pats (pats: list<(document * document)>): list<document> =
   let binders = List.fold_left fold_fun [] (List.rev pats) in
   map_rev p_collapsed_binder binders
 
+// TODO_MB: Attributes?
 and pats_as_binders_if_possible pats =
   let all_binders p = match p.pat with
   | PatAscribed(pat, (t, None)) ->
     (match pat.pat, t.tm  with
-     | PatVar (lid, aqual), Refine({b = Annotated(lid', t)}, phi)
+     | PatVar (lid, aqual,_), Refine({b = Annotated(lid', t)}, phi)
        when (string_of_id lid) = (string_of_id lid') ->
          Some (p_refinement' aqual (p_ident lid) t phi)
-     | PatVar (lid, aqual), _ ->
+     | PatVar (lid, aqual, _), _ ->
        Some (optional p_aqual aqual ^^ p_ident lid, p_tmEqNoRefinement t)
      | _ -> None)
   | _ -> None
