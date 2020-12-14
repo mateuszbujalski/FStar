@@ -530,7 +530,7 @@ patternOrMultibinder:
         let qual_ids = qual_id0 :: qual_ids in
         let qual_ids = qual_ids |> List.map (fun x ->
           let (aq, _attrs), lid = get_aqual_and_attrs_and_X x in
-          (aq, lid, attrs)) in
+          (aq, lid, _attrs)) in
         List.map (fun (q, x, a) -> mkRefinedPattern (mk_pattern (PatVar (x, q, a)) pos) t false r t_pos pos) qual_ids
       }
 
