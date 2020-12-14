@@ -99,7 +99,7 @@ and binder' =
   | TAnnotated of ident * term
   | NoName of term
 
-and binder = {b:binder'; brange:range; blevel:level; aqual:aqual}
+and binder = {b:binder'; brange:range; blevel:level; aqual:aqual; battributes:attributes_}
 
 and pattern' =
   | PatWild     of aqual
@@ -120,10 +120,7 @@ and branch = (pattern * option<term> * term)
 and arg_qualifier =
     | Implicit
     | Equality
-    | Meta of arg_qualifier_meta_t
-and arg_qualifier_meta_t =
-  | Arg_qualifier_meta_tac of term
-  | Arg_qualifier_meta_attr of term
+    | Meta of term
 and aqual = option<arg_qualifier>
 and imp =
     | FsTypApp
@@ -250,7 +247,8 @@ let mk_decl d r decorations =
   let qualifiers = List.choose (function Qualifier q -> Some q | _ -> None) decorations in
   { d=d; drange=r; quals=qualifiers; attrs=attributes_ }
 
-let mk_binder b r l i = {b=b; brange=r; blevel=l; aqual=i}
+let mk_binder_with_attrs b r l i attrs = {b=b; brange=r; blevel=l; aqual=i; battributes=attrs}
+let mk_binder b r l i = mk_binder_with_attrs b r l i []
 let mk_term t r l = {tm=t; range=r; level=l}
 let mk_uminus t rminus r l =
   let t =
@@ -375,17 +373,17 @@ let mkDTuple args r =
   let cons = C.mk_dtuple_data_lid (List.length args) r in
   mkApp (mk_term (Name cons) r Expr) (List.map (fun x -> (x, Nothing)) args) r
 
-let mkRefinedBinder id t should_bind_var refopt m implicit : binder =
-  let b = mk_binder (Annotated(id, t)) m Type_level implicit in
+let mkRefinedBinder id t should_bind_var refopt m implicit attrs : binder =
+  let b = mk_binder_with_attrs (Annotated(id, t)) m Type_level implicit attrs in
   match refopt with
     | None -> b
     | Some phi ->
         if should_bind_var
-        then mk_binder (Annotated(id, mk_term (Refine(b, phi)) m Type_level)) m Type_level implicit
+        then mk_binder_with_attrs (Annotated(id, mk_term (Refine(b, phi)) m Type_level)) m Type_level implicit attrs
         else
             let x = gen t.range in
-            let b = mk_binder (Annotated (x, t)) m Type_level implicit in
-            mk_binder (Annotated(id, mk_term (Refine(b, phi)) m Type_level)) m Type_level implicit
+            let b = mk_binder_with_attrs (Annotated (x, t)) m Type_level implicit attrs in
+            mk_binder_with_attrs (Annotated(id, mk_term (Refine(b, phi)) m Type_level)) m Type_level implicit attrs
 
 let mkRefinedPattern pat t should_bind_pat phi_opt t_range range =
     let t = match phi_opt with
@@ -670,13 +668,15 @@ and binder_to_string x =
   | TAnnotated(i,t)
   | Annotated(i,t) -> Util.format2 "%s:%s" ((string_of_id i)) (t |> term_to_string)
   | NoName t -> t |> term_to_string in
-  Util.format2 "%s%s" (aqual_to_string x.aqual) s
+  Util.format3 "%s%s%s"
+    (aqual_to_string x.aqual)
+    (if x.battributes=[] then "" else attrs_opt_to_string (Some x.battributes))
+    s
 
 and aqual_to_string = function
   | Some Equality -> "$"
   | Some Implicit -> "#"
-  | Some (Meta (Arg_qualifier_meta_tac t)) -> "#[" ^ term_to_string t ^ "]"
-  | Some (Meta (Arg_qualifier_meta_attr t)) -> "[@@" ^ term_to_string t ^ "]"
+  | Some (Meta t) -> "#[" ^ term_to_string t ^ "]"
   | None -> ""
 
 and pat_to_string x = match x.pat with
